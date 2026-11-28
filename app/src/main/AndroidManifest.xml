@@ -1,3 +1,4 @@
+
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
@@ -10,7 +11,8 @@
     <application
         android:allowBackup="false"
         android:label="DIDA TV"
-        android:usesCleartextTraffic="false"
+        android:usesCleartextTraffic="true"
+        android:hardwareAccelerated="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
 
         <activity
