@@ -31,7 +31,6 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemUI()
         showHome()
@@ -97,7 +96,6 @@ class MainActivity : Activity() {
             setPadding(45, 18, 45, 18)
             isFocusable = true
             isFocusableInTouchMode = true
-
             setOnClickListener {
                 openWebsite()
             }
@@ -105,14 +103,7 @@ class MainActivity : Activity() {
 
         layout.addView(logo)
         layout.addView(subtitle)
-
-        layout.addView(
-            enterButton,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        )
+        layout.addView(enterButton)
 
         root.addView(
             layout,
@@ -129,9 +120,10 @@ class MainActivity : Activity() {
     private fun openWebsite() {
         webView?.destroy()
 
-        webView = WebView(this)
+        val browser = WebView(this)
+        webView = browser
 
-        webView?.settings?.apply {
+        browser.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
@@ -146,10 +138,10 @@ class MainActivity : Activity() {
             cacheMode = WebSettings.LOAD_DEFAULT
         }
 
-        webView?.isFocusable = true
-        webView?.isFocusableInTouchMode = true
+        browser.isFocusable = true
+        browser.isFocusableInTouchMode = true
 
-        webView?.webViewClient = object : WebViewClient() {
+        browser.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(
                 view: WebView?,
                 request: WebResourceRequest?
@@ -158,15 +150,13 @@ class MainActivity : Activity() {
             }
         }
 
-        webView?.webChromeClient = object : WebChromeClient() {
+        browser.webChromeClient = object : WebChromeClient() {
 
             override fun onShowCustomView(
                 view: View?,
                 callback: CustomViewCallback?
             ) {
-                if (view == null) return
-
-                if (customView != null) {
+                if (view == null || customView != null) {
                     callback?.onCustomViewHidden()
                     return
                 }
@@ -175,7 +165,6 @@ class MainActivity : Activity() {
                 customViewCallback = callback
 
                 root.removeAllViews()
-
                 root.addView(
                     view,
                     FrameLayout.LayoutParams(
@@ -188,39 +177,45 @@ class MainActivity : Activity() {
             }
 
             override fun onHideCustomView() {
-                root.removeAllViews()
-
-                customView = null
-
-                customViewCallback?.onCustomViewHidden()
-                customViewCallback = null
-
-                webView?.let {
-                    root.addView(
-                        it,
-                        FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.MATCH_PARENT
-                        )
-                    )
-                }
-
-                hideSystemUI()
+                exitFullscreen()
             }
         }
 
         root.removeAllViews()
-
         root.addView(
-            webView,
+            browser,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
         )
 
-        webView?.loadUrl(website)
-        webView?.requestFocus()
+        browser.loadUrl(website)
+        browser.requestFocus()
+    }
+
+    private fun exitFullscreen() {
+        if (customView == null) return
+
+        root.removeAllViews()
+
+        customView = null
+
+        val callback = customViewCallback
+        customViewCallback = null
+        callback?.onCustomViewHidden()
+
+        webView?.let {
+            root.addView(
+                it,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                )
+            )
+        }
+
+        hideSystemUI()
     }
 
     override fun onKeyDown(
@@ -231,18 +226,18 @@ class MainActivity : Activity() {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
 
             if (customView != null) {
-                webView?.let {
-                    (it.webChromeClient as? WebChromeClient)
-                        ?.onHideCustomView()
-                }
+                exitFullscreen()
                 return true
             }
 
-            if (webView != null) {
-                if (webView?.canGoBack() == true) {
-                    webView?.goBack()
+            val browser = webView
+
+            if (browser != null) {
+                if (browser.canGoBack()) {
+                    browser.goBack()
                 } else {
-                    webView?.destroy()
+                    browser.stopLoading()
+                    browser.destroy()
                     webView = null
                     showHome()
                 }
@@ -251,6 +246,16 @@ class MainActivity : Activity() {
         }
 
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        webView?.onResume()
+    }
+
+    override fun onPause() {
+        webView?.onPause()
+        super.onPause()
     }
 
     override fun onDestroy() {
